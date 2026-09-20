@@ -1,11 +1,14 @@
 package com.example.data.model
 
+import com.squareup.moshi.JsonClass
+
 enum class BlockMode {
     CONTENT_LEVEL,
     HARD_BLOCK,
     DAILY_ALLOWANCE
 }
 
+@JsonClass(generateAdapter = true)
 data class BlockedAppRule(
     val id: String,
     val appName: String,
@@ -44,6 +47,7 @@ data class FocusSession(
         } else 0f
 }
 
+@JsonClass(generateAdapter = true)
 data class InterventionConfig(
     val targetApp: String = "Instagram Reels",
     val customQuote: String = "“You promised yourself you'd finish your DSA practice before 7 PM.”",

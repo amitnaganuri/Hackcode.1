@@ -151,6 +151,7 @@ fun AppBlockCard(
     rule: BlockedAppRule,
     onToggle: () -> Unit,
     onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -309,13 +310,22 @@ fun AppBlockCard(
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 LinearProgressIndicator(
-                    progress = { (rule.usedMinutes.toFloat() / rule.totalAllowedMinutes).coerceIn(0f, 1f) },
+                    progress = {
+                        if (rule.totalAllowedMinutes <= 0) 0f
+                        else (rule.usedMinutes.toFloat() / rule.totalAllowedMinutes).coerceIn(0f, 1f)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(6.dp)
                         .clip(RoundedCornerShape(3.dp)),
                     color = FocusTertiary,
                     trackColor = FocusSurfaceContainerHighest
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                RuleActions(
+                    rule = rule,
+                    onEditClick = onEditClick,
+                    onDeleteClick = onDeleteClick
                 )
             }
         } else {
@@ -348,22 +358,60 @@ fun AppBlockCard(
                     )
                 }
 
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(FocusSurfaceContainerHigh)
-                        .clickable { onEditClick() }
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .testTag("edit_rule_${rule.appName}")
-                ) {
-                    Text(
-                        text = "Edit Rule",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = FocusOnSurface
-                    )
-                }
+                RuleActions(
+                    rule = rule,
+                    onEditClick = onEditClick,
+                    onDeleteClick = onDeleteClick
+                )
             }
+        }
+    }
+}
+
+/**
+ * Edit / Delete affordances for a rule, styled to match the existing schedule-strip
+ * chips so the card keeps its current visual language.
+ */
+@Composable
+private fun RuleActions(
+    rule: BlockedAppRule,
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .background(FocusSurfaceContainerHigh)
+                .clickable { onEditClick() }
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .testTag("edit_rule_${rule.appName}")
+        ) {
+            Text(
+                text = "Edit Rule",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = FocusOnSurface
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .background(FocusSurfaceContainerHigh)
+                .clickable { onDeleteClick() }
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .testTag("delete_rule_${rule.appName}")
+        ) {
+            Text(
+                text = "Delete",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = FocusError
+            )
         }
     }
 }

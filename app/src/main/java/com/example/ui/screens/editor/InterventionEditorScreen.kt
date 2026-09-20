@@ -66,11 +66,15 @@ fun InterventionEditorScreen(
 ) {
     val currentConfig by viewModel.interventionConfig.collectAsState()
 
-    var quoteText by remember { mutableStateOf(currentConfig.customQuote) }
-    var subMessageText by remember { mutableStateOf(currentConfig.subMessage) }
-    var anchorLabelText by remember { mutableStateOf(currentConfig.anchorLabel) }
-    var activeTargetText by remember { mutableStateOf(currentConfig.activeTargetName) }
-    var countdownSeconds by remember { mutableFloatStateOf(currentConfig.countdownSeconds.toFloat()) }
+    // Keyed on the config: it is now loaded asynchronously from DataStore, so an unkeyed
+    // remember would latch onto the pre-load default and discard the saved values.
+    var quoteText by remember(currentConfig) { mutableStateOf(currentConfig.customQuote) }
+    var subMessageText by remember(currentConfig) { mutableStateOf(currentConfig.subMessage) }
+    var anchorLabelText by remember(currentConfig) { mutableStateOf(currentConfig.anchorLabel) }
+    var activeTargetText by remember(currentConfig) { mutableStateOf(currentConfig.activeTargetName) }
+    var countdownSeconds by remember(currentConfig) {
+        mutableFloatStateOf(currentConfig.countdownSeconds.toFloat())
+    }
 
     Scaffold(
         topBar = {

@@ -45,7 +45,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.AppCatalog
 import com.example.data.model.BlockMode
+import com.example.data.model.BlockedAppRule
 import com.example.ui.theme.FocusOnPrimary
 import com.example.ui.theme.FocusOnSurface
 import com.example.ui.theme.FocusOnSurfaceVariant
@@ -63,14 +65,21 @@ import com.example.ui.theme.FocusTertiaryContainer
 @Composable
 fun AddBlockBottomSheet(
     onDismiss: () -> Unit,
-    onSaveBlock: (appName: String, mode: BlockMode, filterLabel: String, schedule: String) -> Unit
+    onSaveBlock: (appName: String, mode: BlockMode, filterLabel: String, schedule: String) -> Unit,
+    existingRule: BlockedAppRule? = null
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var selectedMode by remember { mutableStateOf<BlockMode?>(null) }
-    var selectedApp by remember { mutableStateOf("Reddit") }
-    var customSchedule by remember { mutableStateOf("9:00 AM – 5:00 PM • Weekdays") }
+    // Keyed on the rule so reopening the sheet for a different rule re-seeds the fields.
+    var selectedMode by remember(existingRule) { mutableStateOf(existingRule?.blockMode) }
+    var selectedApp by remember(existingRule) { mutableStateOf(existingRule?.appName ?: "Reddit") }
+    var customSchedule by remember(existingRule) {
+        mutableStateOf(existingRule?.scheduleText ?: "9:00 AM – 5:00 PM • Weekdays")
+    }
 
-    val candidateApps = listOf("Reddit", "Twitter / X", "Instagram", "YouTube", "TikTok", "Chrome", "Facebook", "Netflix")
+    val isEditing = existingRule != null
+    // Only apps with a known real package can be blocked; a fabricated package name
+    // would make the rule silently never match the foreground app.
+    val candidateApps = AppCatalog.selectableAppNames()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -91,7 +100,11 @@ fun AddBlockBottomSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (selectedMode == null) "Select Protection Type" else "Configure Block: $selectedApp",
+                    text = when {
+                        selectedMode == null -> "Select Protection Type"
+                        isEditing -> "Edit Block: $selectedApp"
+                        else -> "Configure Block: $selectedApp"
+                    },
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = FocusOnSurface
@@ -285,11 +298,13 @@ fun AddBlockBottomSheet(
                         }
                     }
 
-                    val filterLabel = when (selectedMode) {
-                        BlockMode.CONTENT_LEVEL -> "Shorts & Feed Only"
-                        BlockMode.HARD_BLOCK -> "Entire App Blocked"
-                        BlockMode.DAILY_ALLOWANCE -> "30 min / day allowance"
-                        null -> ""
+                    val filterLabel = when {
+                        existingRule != null && selectedMode == existingRule.blockMode ->
+                            existingRule.filterLabel
+                        selectedMode == BlockMode.CONTENT_LEVEL -> "Shorts & Feed Only"
+                        selectedMode == BlockMode.HARD_BLOCK -> "Entire App Blocked"
+                        selectedMode == BlockMode.DAILY_ALLOWANCE -> "30 min / day allowance"
+                        else -> ""
                     }
 
                     Box(
@@ -349,7 +364,11 @@ fun AddBlockBottomSheet(
                                 .weight(1f)
                                 .testTag("save_block_rule_button")
                         ) {
-                            Text("Save Rule", color = FocusOnPrimary, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = if (isEditing) "Update Rule" else "Save Rule",
+                                color = FocusOnPrimary,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }

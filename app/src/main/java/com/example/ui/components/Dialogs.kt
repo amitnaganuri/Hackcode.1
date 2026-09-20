@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.AlertDialog
@@ -33,6 +34,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.theme.FocusError
 import com.example.ui.theme.FocusOnPrimary
 import com.example.ui.theme.FocusOnSurface
 import com.example.ui.theme.FocusOnSurfaceVariant
@@ -167,6 +169,62 @@ fun StrictSecurityDialog(
                 shape = RoundedCornerShape(20.dp)
             ) {
                 Text("Understood", color = FocusOnPrimary, fontWeight = FontWeight.Bold)
+            }
+        }
+    )
+}
+
+/**
+ * Confirmation for a destructive rule delete. Styled to match [EditGoalDialog] so the
+ * existing visual language is preserved.
+ */
+@Composable
+fun DeleteRuleDialog(
+    appName: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = FocusSurfaceContainerHigh,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DeleteOutline,
+                    contentDescription = null,
+                    tint = FocusError
+                )
+                Text(
+                    text = "Remove Block?",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = FocusOnSurface
+                )
+            }
+        },
+        text = {
+            Text(
+                text = "$appName will no longer be shielded. You can add the block back at any time.",
+                fontSize = 13.sp,
+                color = FocusOnSurfaceVariant
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = FocusError),
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier.testTag("confirm_delete_rule_button")
+            ) {
+                Text("Remove Block", color = FocusSurfaceContainerHigh, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Keep Block", color = FocusOnSurfaceVariant)
             }
         }
     )

@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.components.AddBlockBottomSheet
 import com.example.ui.components.AppBlockCard
+import com.example.ui.components.DeleteRuleDialog
 import com.example.ui.components.FocusGuardTopBar
 import com.example.ui.components.StrictSecurityDialog
 import com.example.ui.theme.FocusOnPrimary
@@ -68,6 +69,8 @@ fun BlocksScreen(
     val masterShield by viewModel.shortsAndReelsMasterShield.collectAsState()
     val isAddSheetOpen by viewModel.isAddBlockSheetOpen.collectAsState()
     val isSecurityDialogOpen by viewModel.isSecurityDialogOpen.collectAsState()
+    val ruleBeingEdited by viewModel.ruleBeingEdited.collectAsState()
+    val rulePendingDelete by viewModel.rulePendingDelete.collectAsState()
 
     val activeCount = rules.count { it.isEnabled }
 
@@ -75,8 +78,17 @@ fun BlocksScreen(
         AddBlockBottomSheet(
             onDismiss = { viewModel.setAddBlockSheetOpen(false) },
             onSaveBlock = { appName, mode, filterLabel, schedule ->
-                viewModel.addNewRule(appName, mode, filterLabel, schedule)
-            }
+                viewModel.saveRule(appName, mode, filterLabel, schedule)
+            },
+            existingRule = ruleBeingEdited
+        )
+    }
+
+    rulePendingDelete?.let { pending ->
+        DeleteRuleDialog(
+            appName = pending.appName,
+            onDismiss = { viewModel.cancelDeleteRule() },
+            onConfirm = { viewModel.confirmDeleteRule() }
         )
     }
 
@@ -310,7 +322,8 @@ fun BlocksScreen(
                 AppBlockCard(
                     rule = rule,
                     onToggle = { viewModel.toggleRule(rule.id) },
-                    onEditClick = { viewModel.setAddBlockSheetOpen(true) }
+                    onEditClick = { viewModel.startEditingRule(rule.id) },
+                    onDeleteClick = { viewModel.requestDeleteRule(rule.id) }
                 )
             }
 
@@ -366,7 +379,7 @@ fun BlocksScreen(
             // 6. Add New Block Rule Button
             item {
                 Button(
-                    onClick = { viewModel.setAddBlockSheetOpen(true) },
+                    onClick = { viewModel.startCreatingRule() },
                     colors = ButtonDefaults.buttonColors(containerColor = FocusPrimaryContainer),
                     shape = RoundedCornerShape(26.dp),
                     modifier = Modifier
