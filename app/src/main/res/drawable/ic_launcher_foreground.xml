@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer concentric dashed focus ring -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M54,20 A34,34 0 1,1 53.9,20"
+        android:strokeWidth="2.5"
+        android:strokeColor="#2E383F"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M24,54 A30,30 0 0,0 54,84 A30,30 0 0,0 80,68"
+        android:strokeWidth="3.5"
+        android:strokeColor="#4EDE83"
+        android:strokeLineCap="round" />
+    <!-- Shield shape -->
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M54,34 L66,39 C66,54 54,66 54,66 C54,66 42,54 42,39 Z" />
+    <path
+        android:fillColor="#0D2E22"
+        android:pathData="M54,38 L63,41.5 C63,52 54,61 54,61 C54,61 45,52 45,41.5 Z" />
+    <!-- Inner glowing center dot -->
+    <path
+        android:fillColor="#4EDE83"
+        android:pathData="M54,50m-3.5,0a3.5,3.5 0 1,1 7,0a3.5,3.5 0 1,1 -7,0" />
+</vector>

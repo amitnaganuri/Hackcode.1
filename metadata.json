@@ -1,0 +1,6 @@
+{
+  "name": "FocusGuard",
+  "description": "Reduces digital distractions by blocking distracting apps, Instagram Reels, and YouTube Shorts with mindful intervention screens.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
