@@ -43,6 +43,15 @@ data class BlockDecision(
         RULE_DISABLED,
         NO_ACTIVE_SESSION,
         OUTSIDE_SCHEDULE,
+        /** A daily-allowance rule matched but today's budget is not spent yet. */
+        WITHIN_ALLOWANCE,
+        /** Short-form content is on screen but its own daily budget is not spent. */
+        WITHIN_CONTENT_ALLOWANCE,
+        /** Content-level rule matched but the short-form feed is not on screen. */
+        CONTENT_NOT_DETECTED,
+        /** The global Shorts & Reels shield is switched off. */
+        SHIELD_DISABLED,
+        /** Rule matched but its mode is not enforced. */
         MODE_NOT_SUPPORTED_YET
     }
 
@@ -64,5 +73,28 @@ data class BlockDecision(
  */
 data class ContentDetectionResult(
     val detected: Boolean,
-    val contentType: String? = null
+    val contentType: String? = null,
+    /** Id of the [ContentTarget] that matched, used to key its usage budget. */
+    val contentId: String? = null
 )
+
+/**
+ * Foreground time accumulated per package for a single calendar day.
+ *
+ * Daily-allowance rules need to know how long an app has actually been used today.
+ * Keyed by date so the counters reset naturally at midnight without a scheduled job:
+ * a snapshot whose [dateKey] is not today is simply discarded on next read.
+ */
+@JsonClass(generateAdapter = true)
+data class DailyUsageSnapshot(
+    /** Local calendar day, formatted yyyy-MM-dd. */
+    val dateKey: String,
+    val millisByPackage: Map<String, Long> = emptyMap()
+) {
+    fun millisFor(packageName: String): Long = millisByPackage[packageName] ?: 0L
+
+    fun minutesFor(packageName: String): Int = (millisFor(packageName) / 60_000L).toInt()
+
+    fun plus(packageName: String, millis: Long): DailyUsageSnapshot =
+        copy(millisByPackage = millisByPackage + (packageName to (millisFor(packageName) + millis)))
+}

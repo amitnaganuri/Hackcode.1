@@ -20,7 +20,25 @@ data class BlockedAppRule(
     val attemptsBlockedCount: Int = 0,
     val usedMinutes: Int = 0,
     val totalAllowedMinutes: Int = 0,
-    val category: String = "Social"
+    val category: String = "Social",
+    /**
+     * Ids from [ContentCatalog] this rule blocks, for CONTENT_LEVEL rules.
+     * Empty means "the app's short-form feeds", which is how older rules behave.
+     */
+    val blockedContentIds: List<String> = emptyList(),
+    /**
+     * Daily budget in minutes for the selected content, for CONTENT_LEVEL rules.
+     * Zero means block on sight, which is the original behaviour.
+     */
+    val contentAllowanceMinutes: Int = 0,
+    /**
+     * View ids captured from the user's own device with "Teach this screen".
+     *
+     * Built-in catalogue entries are written from published naming and cannot be
+     * verified for every app and version; these are observed on the actual phone, so
+     * they are the authoritative signal when present.
+     */
+    val learnedViewIds: List<String> = emptyList()
 )
 
 data class FocusSession(

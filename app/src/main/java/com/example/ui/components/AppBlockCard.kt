@@ -382,6 +382,16 @@ private fun RuleActions(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
+        Text(
+            text = rule.attemptsBlockedCount.toString() + " blocked",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = FocusPrimary,
+            modifier = Modifier
+                .padding(end = 2.dp)
+                .testTag("attempts_count_" + rule.appName)
+        )
+
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(6.dp))

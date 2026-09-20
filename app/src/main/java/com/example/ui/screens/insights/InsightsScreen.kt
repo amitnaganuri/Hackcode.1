@@ -55,6 +55,7 @@ import com.example.ui.theme.FocusSurfaceContainerHighest
 import com.example.ui.theme.FocusSurfaceContainerLow
 import com.example.ui.theme.FocusSurfaceVariant
 import com.example.ui.theme.FocusTertiary
+import com.example.data.analytics.FocusAnalytics
 import com.example.viewmodel.FocusGuardViewModel
 
 @Composable
@@ -65,8 +66,9 @@ fun InsightsScreen(
     modifier: Modifier = Modifier
 ) {
     val dailyStats by viewModel.dailyStats.collectAsState()
-    val weeklyBalance by viewModel.weeklyBalance.collectAsState()
-    val appInterventions by viewModel.appInterventions.collectAsState()
+    val insights by viewModel.insightsStats.collectAsState()
+    val weeklyBalance = insights.weeklyBalance
+    val appInterventions = insights.appInterventions
     val selectedTimeframe by viewModel.selectedTimeframe.collectAsState()
 
     val timeframes = listOf("Today", "This Week", "This Month")
@@ -169,7 +171,7 @@ fun InsightsScreen(
                                 .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
                             Text(
-                                text = "-${dailyStats.screenTimeReductionPercent}% vs last week",
+                                text = screenTimeChangeLabel(insights.screenTimeChangePercent),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = FocusPrimary
@@ -180,7 +182,7 @@ fun InsightsScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = dailyStats.activeScreenTimeText,
+                        text = insights.screenTimeText,
                         fontSize = 38.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = (-1).sp,
@@ -190,7 +192,7 @@ fun InsightsScreen(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = dailyStats.screenTimeComparisonText,
+                        text = insights.screenTimeComparisonText,
                         fontSize = 13.sp,
                         color = FocusOnSurfaceVariant
                     )
@@ -228,12 +230,16 @@ fun InsightsScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("Deep Focus", fontSize = 11.sp, color = FocusOnSurfaceVariant)
                         Text(
-                            text = dailyStats.deepFocusWeeklyText,
+                            text = insights.deepFocusText,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
                             color = FocusOnSurface
                         )
-                        Text("+14% vs avg", fontSize = 10.sp, color = FocusPrimary)
+                        Text(
+                            text = focusChangeLabel(insights.deepFocusChangePercent),
+                            fontSize = 10.sp,
+                            color = FocusPrimary
+                        )
                     }
 
                     // Recovered
@@ -261,12 +267,16 @@ fun InsightsScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("Recovered", fontSize = 11.sp, color = FocusOnSurfaceVariant)
                         Text(
-                            text = dailyStats.recoveredWeeklyText,
+                            text = insights.recoveredText,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
                             color = FocusOnSurface
                         )
-                        Text("12 traps halted", fontSize = 10.sp, color = FocusSecondary)
+                        Text(
+                            text = insights.blockedCount.toString() + " traps halted",
+                            fontSize = 10.sp,
+                            color = FocusSecondary
+                        )
                     }
 
                     // Blocked
@@ -294,7 +304,7 @@ fun InsightsScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("Blocked", fontSize = 11.sp, color = FocusOnSurfaceVariant)
                         Text(
-                            text = "${dailyStats.blockedWeeklyCount}",
+                            text = insights.blockedCount.toString(),
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
                             color = FocusOnSurface
@@ -351,7 +361,13 @@ fun InsightsScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.height(6.dp))
-                            Text("45 Pages Read", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = FocusOnSurface)
+                            Text(
+                                text = FocusAnalytics.pagesRead(insights.recoveredMinutes)
+                                    .toString() + " Pages Read",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = FocusOnSurface
+                            )
                             Text("Book progress", fontSize = 11.sp, color = FocusOnSurfaceVariant)
                         }
 
@@ -370,7 +386,13 @@ fun InsightsScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.height(6.dp))
-                            Text("2 Workouts", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = FocusOnSurface)
+                            Text(
+                                text = FocusAnalytics.workouts(insights.recoveredMinutes)
+                                    .toString() + " Workouts",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = FocusOnSurface
+                            )
                             Text("Physical fitness", fontSize = 11.sp, color = FocusOnSurfaceVariant)
                         }
 
@@ -389,7 +411,13 @@ fun InsightsScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.height(6.dp))
-                            Text("3 Study Blocks", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = FocusOnSurface)
+                            Text(
+                                text = FocusAnalytics.studyBlocks(insights.recoveredMinutes)
+                                    .toString() + " Study Blocks",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = FocusOnSurface
+                            )
                             Text("DSA algorithms", fontSize = 11.sp, color = FocusOnSurfaceVariant)
                         }
                     }
@@ -509,7 +537,7 @@ fun InsightsScreen(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "${dailyStats.streakDays}-Day Focus Streak",
+                            text = insights.streakDays.toString() + "-Day Focus Streak",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = FocusOnSurface
@@ -521,7 +549,7 @@ fun InsightsScreen(
                             color = FocusTertiary
                         )
                         Text(
-                            text = "${dailyStats.streakProtectedPercent}% of planned blocks protected with zero overrides.",
+                            text = insights.protectedPercent.toString() + "% of the last " + insights.timeframe.days + " days had a completed focus session.",
                             fontSize = 11.sp,
                             color = FocusOnSurfaceVariant
                         )
@@ -549,4 +577,20 @@ fun InsightsScreen(
             }
         }
     }
+}
+
+
+/** Screen-time change, phrased as a drop or a rise rather than always a drop. */
+private fun screenTimeChangeLabel(changePercent: Int): String = when {
+    changePercent < 0 -> changePercent.toString() + "% vs previous period"
+    changePercent > 0 -> "+" + changePercent + "% vs previous period"
+    else -> "No change yet"
+}
+
+
+/** Deep-focus movement against the previous period of the same length. */
+private fun focusChangeLabel(changePercent: Int): String = when {
+    changePercent > 0 -> "+" + changePercent + "% vs previous"
+    changePercent < 0 -> changePercent.toString() + "% vs previous"
+    else -> "First period tracked"
 }

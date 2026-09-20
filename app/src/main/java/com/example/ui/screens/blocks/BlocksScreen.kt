@@ -63,6 +63,7 @@ fun BlocksScreen(
     viewModel: FocusGuardViewModel,
     onNavigateToChamber: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onMinimise: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val rules by viewModel.rules.collectAsState()
@@ -70,15 +71,38 @@ fun BlocksScreen(
     val isAddSheetOpen by viewModel.isAddBlockSheetOpen.collectAsState()
     val isSecurityDialogOpen by viewModel.isSecurityDialogOpen.collectAsState()
     val ruleBeingEdited by viewModel.ruleBeingEdited.collectAsState()
+    val installedApps by viewModel.installedApps.collectAsState()
+    val isLoadingApps by viewModel.isLoadingInstalledApps.collectAsState()
     val rulePendingDelete by viewModel.rulePendingDelete.collectAsState()
+    val isStrictModeEnabled by viewModel.isStrictModeEnabled.collectAsState()
+    val activeSession by viewModel.activeSession.collectAsState()
+    // Rules are only actually locked while a session is running; the banner has to
+    // say which of those two states the user is in or the greyed-out taps look broken.
+    val areRuleChangesLocked = isStrictModeEnabled && activeSession?.isRunning == true
 
     val activeCount = rules.count { it.isEnabled }
 
     if (isAddSheetOpen) {
         AddBlockBottomSheet(
             onDismiss = { viewModel.setAddBlockSheetOpen(false) },
-            onSaveBlock = { appName, mode, filterLabel, schedule ->
-                viewModel.saveRule(appName, mode, filterLabel, schedule)
+            onSaveBlock = {
+                appName, packageName, mode, filterLabel, schedule,
+                allowanceMinutes, contentIds, contentBudget ->
+                viewModel.saveRule(
+                    appName, packageName, mode, filterLabel, schedule,
+                    allowanceMinutes, contentIds, contentBudget
+                )
+            },
+            installedApps = installedApps,
+            isLoadingApps = isLoadingApps,
+            alreadyBlockedPackages = rules.map { it.packageName }.toSet(),
+            onTeachScreen = {
+                appName, packageName, mode, filterLabel, schedule, contentIds, contentBudget ->
+                viewModel.teachScreen(
+                    appName, packageName, mode, filterLabel, schedule, contentIds, contentBudget
+                )
+                // Leave FocusGuard so the user can open the app being taught.
+                onMinimise()
             },
             existingRule = ruleBeingEdited
         )
@@ -354,13 +378,25 @@ fun BlocksScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Strict Mode is Active",
+                            text = if (areRuleChangesLocked) {
+                                "Rules are locked"
+                            } else if (isStrictModeEnabled) {
+                                "Strict Mode is on"
+                            } else {
+                                "Strict Mode is off"
+                            },
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = FocusOnSurface
                         )
                         Text(
-                            text = "Modifications require your 4-digit PIN or 60-second breathing cooldown.",
+                            text = if (areRuleChangesLocked) {
+                                "A focus session is running, so blocks cannot be changed until it ends."
+                            } else if (isStrictModeEnabled) {
+                                "Blocks will lock as soon as a focus session starts."
+                            } else {
+                                "Blocks can be changed at any time. Turn Strict Mode on in Settings."
+                            },
                             fontSize = 12.sp,
                             color = FocusOnSurfaceVariant
                         )

@@ -10,7 +10,9 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.data.model.BlockedAppRule
+import com.example.data.model.DailyUsageSnapshot
 import com.example.data.model.DistractionAttempt
+import com.example.data.model.FocusSessionRecord
 import com.example.data.model.InterventionConfig
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -47,6 +49,14 @@ class FocusGuardPreferences(context: Context) {
         moshi.adapter<List<DistractionAttempt>>(
             Types.newParameterizedType(List::class.java, DistractionAttempt::class.java)
         )
+    private val usageHistoryAdapter =
+        moshi.adapter<List<DailyUsageSnapshot>>(
+            Types.newParameterizedType(List::class.java, DailyUsageSnapshot::class.java)
+        )
+    private val sessionRecordListAdapter =
+        moshi.adapter<List<FocusSessionRecord>>(
+            Types.newParameterizedType(List::class.java, FocusSessionRecord::class.java)
+        )
     private val interventionAdapter = moshi.adapter(InterventionConfig::class.java)
     private val sessionAdapter = moshi.adapter(PersistedSession::class.java)
 
@@ -56,7 +66,11 @@ class FocusGuardPreferences(context: Context) {
         val SESSION = stringPreferencesKey("session_json")
         val GOAL = stringPreferencesKey("today_goal")
         val MASTER_SHIELD = booleanPreferencesKey("master_shield")
+        val STRICT_MODE = booleanPreferencesKey("strict_mode")
+        val PROFILE_NAME = stringPreferencesKey("profile_name")
         val ATTEMPTS = stringPreferencesKey("attempts_json")
+        val USAGE_HISTORY = stringPreferencesKey("usage_history_json")
+        val SESSION_LOG = stringPreferencesKey("session_log_json")
         val SEEDED = booleanPreferencesKey("defaults_seeded")
     }
 
@@ -95,10 +109,28 @@ class FocusGuardPreferences(context: Context) {
     fun masterShieldFlow(default: Boolean): Flow<Boolean> =
         preferences.map { it[Keys.MASTER_SHIELD] ?: default }
 
+    fun strictModeFlow(default: Boolean): Flow<Boolean> =
+        preferences.map { it[Keys.STRICT_MODE] ?: default }
+
+    fun profileNameFlow(default: String): Flow<String> =
+        preferences.map { it[Keys.PROFILE_NAME] ?: default }
+
     fun attemptsFlow(): Flow<List<DistractionAttempt>> =
         preferences.map { prefs ->
             val json = prefs[Keys.ATTEMPTS] ?: return@map emptyList()
             decode(json, emptyList()) { attemptListAdapter.fromJson(it) }
+        }
+
+    fun usageHistoryFlow(): Flow<List<DailyUsageSnapshot>> =
+        preferences.map { prefs ->
+            val json = prefs[Keys.USAGE_HISTORY] ?: return@map emptyList()
+            decode(json, emptyList()) { usageHistoryAdapter.fromJson(it) }
+        }
+
+    fun sessionLogFlow(): Flow<List<FocusSessionRecord>> =
+        preferences.map { prefs ->
+            val json = prefs[Keys.SESSION_LOG] ?: return@map emptyList()
+            decode(json, emptyList()) { sessionRecordListAdapter.fromJson(it) }
         }
 
     fun seededFlow(): Flow<Boolean> = preferences.map { it[Keys.SEEDED] ?: false }
@@ -117,9 +149,19 @@ class FocusGuardPreferences(context: Context) {
     suspend fun saveAttempts(attempts: List<DistractionAttempt>) =
         write { it[Keys.ATTEMPTS] = attemptListAdapter.toJson(attempts) }
 
+    suspend fun saveUsageHistory(history: List<DailyUsageSnapshot>) =
+        write { it[Keys.USAGE_HISTORY] = usageHistoryAdapter.toJson(history) }
+
+    suspend fun saveSessionLog(sessions: List<FocusSessionRecord>) =
+        write { it[Keys.SESSION_LOG] = sessionRecordListAdapter.toJson(sessions) }
+
     suspend fun saveGoal(goal: String) = write { it[Keys.GOAL] = goal }
 
     suspend fun saveMasterShield(enabled: Boolean) = write { it[Keys.MASTER_SHIELD] = enabled }
+
+    suspend fun saveStrictMode(enabled: Boolean) = write { it[Keys.STRICT_MODE] = enabled }
+
+    suspend fun saveProfileName(name: String) = write { it[Keys.PROFILE_NAME] = name }
 
     suspend fun markSeeded() = write { it[Keys.SEEDED] = true }
 

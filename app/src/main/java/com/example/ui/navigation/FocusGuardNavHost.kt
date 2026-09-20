@@ -24,7 +24,9 @@ import com.example.viewmodel.FocusGuardViewModel
 
 @Composable
 fun FocusGuardApp(
-    viewModel: FocusGuardViewModel = viewModel(factory = FocusGuardViewModel.Factory)
+    viewModel: FocusGuardViewModel = viewModel(factory = FocusGuardViewModel.Factory),
+    /** Sends FocusGuard to the background so another app can be brought forward. */
+    onMinimise: () -> Unit = {}
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -78,7 +80,8 @@ fun FocusGuardApp(
                 BlocksScreen(
                     viewModel = viewModel,
                     onNavigateToChamber = { navController.navigate(Screen.Chamber.route) },
-                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                    onMinimise = onMinimise
                 )
             }
 

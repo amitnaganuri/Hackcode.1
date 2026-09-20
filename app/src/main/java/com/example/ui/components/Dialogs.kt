@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -155,7 +156,7 @@ fun StrictSecurityDialog(
                         .padding(10.dp)
                 ) {
                     Text(
-                        text = "• 4-Digit Security PIN required for rule changes\n• 60-second breathing cooldown before unlock\n• Emergency 30s pass available max 1/day",
+                        text = "While a focus session is running:\n• Blocks cannot be switched off\n• Rules cannot be edited or deleted\n• New rules cannot be added\n\nEverything unlocks as soon as the session ends.",
                         fontSize = 12.sp,
                         color = FocusOnSurface
                     )
@@ -225,6 +226,73 @@ fun DeleteRuleDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Keep Block", color = FocusOnSurfaceVariant)
+            }
+        }
+    )
+}
+
+/** Lets the user set the name shown on the Settings profile card. */
+@Composable
+fun EditProfileNameDialog(
+    initialName: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var nameText by remember { mutableStateOf(initialName) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = FocusSurfaceContainerHigh,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint = FocusPrimary
+                )
+                Text(
+                    text = "Your Name",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = FocusOnSurface
+                )
+            }
+        },
+        text = {
+            OutlinedTextField(
+                value = nameText,
+                onValueChange = { nameText = it },
+                singleLine = true,
+                label = { Text("Display name") },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = FocusOnSurface,
+                    unfocusedTextColor = FocusOnSurface,
+                    focusedBorderColor = FocusPrimary,
+                    unfocusedBorderColor = FocusSurfaceContainerHighest,
+                    focusedLabelColor = FocusPrimary,
+                    unfocusedLabelColor = FocusOnSurfaceVariant
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("profile_name_field")
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(nameText) },
+                colors = ButtonDefaults.buttonColors(containerColor = FocusPrimary),
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier.testTag("save_profile_name_button")
+            ) {
+                Text("Save", color = FocusOnPrimary, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = FocusOnSurfaceVariant)
             }
         }
     )

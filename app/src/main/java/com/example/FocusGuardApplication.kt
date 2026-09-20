@@ -4,6 +4,9 @@ import android.app.Application
 import android.content.Context
 import com.example.data.local.FocusGuardPreferences
 import com.example.data.repository.FocusGuardRepository
+import com.example.data.repository.InstalledAppsProvider
+import com.example.service.BlockSuppressor
+import com.example.service.ScreenLearner
 import com.example.service.BlockingEngine
 import com.example.service.DefaultBlockingEngine
 import kotlinx.coroutines.CoroutineScope
@@ -36,6 +39,18 @@ class AppContainer(context: Context) {
         preferences = preferences,
         scope = applicationScope
     )
+
+    /**
+     * Shared between the accessibility service and the intervention screen so the
+     * grace period after a content block can start when the user actually returns.
+     */
+    val blockSuppressor: BlockSuppressor = BlockSuppressor()
+
+    /** Captures a screen signature when the user teaches FocusGuard a screen. */
+    val screenLearner: ScreenLearner = ScreenLearner()
+
+    /** Lists every launchable app on the device for the block picker. */
+    val installedAppsProvider: InstalledAppsProvider = InstalledAppsProvider(context.applicationContext)
 
     /**
      * Shared by the accessibility service. Reads the same repository the UI writes to,

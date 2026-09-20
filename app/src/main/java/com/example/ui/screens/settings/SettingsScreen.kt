@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.components.FocusGuardBrandIcon
 import com.example.ui.components.FocusGuardTopBar
+import com.example.ui.components.EditProfileNameDialog
 import com.example.ui.components.StrictSecurityDialog
 import com.example.ui.theme.FocusError
 import com.example.ui.theme.FocusOnPrimary
@@ -72,6 +73,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.service.AccessibilityPermission
+import com.example.service.UsageAccessPermission
 import com.example.viewmodel.FocusGuardViewModel
 
 @Composable
@@ -81,8 +83,11 @@ fun SettingsScreen(
     onNavigateToEditor: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val masterShield by viewModel.shortsAndReelsMasterShield.collectAsState()
     val dailyStats by viewModel.dailyStats.collectAsState()
+    val isStrictModeEnabled by viewModel.isStrictModeEnabled.collectAsState()
+    val profileName by viewModel.profileName.collectAsState()
+    val isProfileNameDialogOpen by viewModel.isProfileNameDialogOpen.collectAsState()
+    val activeSession by viewModel.activeSession.collectAsState()
 
     val context = LocalContext.current
     // Re-read on every resume: the user grants this in system Settings and comes back,
@@ -90,21 +95,32 @@ fun SettingsScreen(
     var isAccessibilityEnabled by remember {
         mutableStateOf(AccessibilityPermission.isServiceEnabled(context))
     }
+    var isUsageAccessGranted by remember {
+        mutableStateOf(UsageAccessPermission.isGranted(context))
+    }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 isAccessibilityEnabled = AccessibilityPermission.isServiceEnabled(context)
+                isUsageAccessGranted = UsageAccessPermission.isGranted(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    var isStrictModeEnabled by remember { mutableStateOf(true) }
     var isDndEnabled by remember { mutableStateOf(true) }
     var isNotificationsEnabled by remember { mutableStateOf(true) }
     var isSecurityDialogOpen by remember { mutableStateOf(false) }
+
+    if (isProfileNameDialogOpen) {
+        EditProfileNameDialog(
+            initialName = profileName,
+            onDismiss = { viewModel.setProfileNameDialogOpen(false) },
+            onSave = { viewModel.setProfileName(it) }
+        )
+    }
 
     if (isSecurityDialogOpen) {
         StrictSecurityDialog(onDismiss = { isSecurityDialogOpen = false })
@@ -155,7 +171,7 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Alex Morgan",
+                            text = profileName,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = FocusOnSurface
@@ -216,7 +232,10 @@ fun SettingsScreen(
                                     color = FocusOnSurface
                                 )
                                 Text(
-                                    text = "PIN lock and breathing cooldown",
+                                    text = strictModeSubtitle(
+                                        enabled = isStrictModeEnabled,
+                                        sessionRunning = activeSession?.isRunning == true
+                                    ),
                                     fontSize = 12.sp,
                                     color = FocusOnSurfaceVariant
                                 )
@@ -225,7 +244,7 @@ fun SettingsScreen(
 
                         Switch(
                             checked = isStrictModeEnabled,
-                            onCheckedChange = { isStrictModeEnabled = it },
+                            onCheckedChange = { viewModel.setStrictMode(it) },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = FocusSurface,
                                 checkedTrackColor = FocusPrimary
@@ -253,7 +272,7 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "4-Digit PIN & Cooldown Settings",
+                                text = "How Strict Mode protects you",
                                 fontSize = 13.sp,
                                 color = FocusOnSurface
                             )
@@ -449,7 +468,11 @@ fun SettingsScreen(
                                 color = FocusOnSurface
                             )
                             Text(
-                                text = "Tracks real-time app screen times",
+                                text = if (isUsageAccessGranted) {
+                                    "System usage figures available"
+                                } else {
+                                    "Not needed \u2022 screen time is measured in-app"
+                                },
                                 fontSize = 12.sp,
                                 color = FocusOnSurfaceVariant
                             )
@@ -460,7 +483,12 @@ fun SettingsScreen(
                                 .background(FocusPrimary.copy(alpha = 0.15f))
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
-                            Text("Granted", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = FocusPrimary)
+                            Text(
+                                text = if (isUsageAccessGranted) "Granted" else "Optional",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isUsageAccessGranted) FocusPrimary else FocusOutline
+                            )
                         }
                     }
                 }
@@ -479,7 +507,7 @@ fun SettingsScreen(
                     FocusGuardBrandIcon(size = 40)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "FocusGuard v1.0.0",
+                        text = "UltimateFocus v1.0.0",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = FocusOnSurface
@@ -502,4 +530,19 @@ fun SettingsScreen(
             }
         }
     }
+}
+
+
+/** Tier shown on the profile card, earned from the current streak. */
+private fun guardianTier(streakDays: Int): String = when {
+    streakDays >= 30 -> "Guardian Tier III"
+    streakDays >= 7 -> "Guardian Tier II"
+    else -> "Guardian Tier I"
+}
+
+/** Says what Strict Mode is doing right now rather than naming an unbuilt PIN feature. */
+private fun strictModeSubtitle(enabled: Boolean, sessionRunning: Boolean): String = when {
+    !enabled -> "Off • rules can be changed at any time"
+    sessionRunning -> "Locked • rules cannot be changed during this session"
+    else -> "On • rules lock while a focus session runs"
 }

@@ -3,6 +3,19 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+        Android 11+ hides other installed packages by default. FocusGuard needs to list
+        launchable apps so the user can pick any app on their phone to block. This
+        declaration is scoped to launcher activities only, rather than requesting the
+        broad QUERY_ALL_PACKAGES permission.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application

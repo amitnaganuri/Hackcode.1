@@ -49,7 +49,7 @@ fun FocusGuardBrandIcon(modifier: Modifier = Modifier, size: Int = 28) {
     ) {
         Icon(
             imageVector = Icons.Default.Shield,
-            contentDescription = "FocusGuard Shield",
+            contentDescription = "UltimateFocus Shield",
             tint = FocusPrimary,
             modifier = Modifier.size((size * 0.65f).dp)
         )

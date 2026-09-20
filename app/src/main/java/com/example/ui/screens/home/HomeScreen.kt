@@ -89,6 +89,7 @@ fun HomeScreen(
 ) {
     val activeSession by viewModel.activeSession.collectAsState()
     val dailyStats by viewModel.dailyStats.collectAsState()
+    val appInterventions by viewModel.appInterventions.collectAsState()
     val selectedDuration by viewModel.selectedDurationMinutes.collectAsState()
     val isEditGoalOpen by viewModel.isEditGoalDialogOpen.collectAsState()
 
@@ -127,7 +128,7 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "WEDNESDAY, OCT 24",
+                        text = todayLabel(),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 1.sp,
@@ -159,7 +160,7 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "Good morning, Alex",
+                    text = greetingForNow(),
                     fontSize = 28.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = (-0.5).sp,
@@ -189,7 +190,7 @@ fun HomeScreen(
                         FocusRing(
                             progress = dailyStats.focusScorePercent / 100f,
                             scoreLabel = "FOCUS SCORE ${dailyStats.focusScorePercent}%",
-                            timeText = "2h 38m",
+                            timeText = formatMinutes(dailyStats.focusedTodayMinutes),
                             subLabel = "Focused today",
                             size = 190.dp
                         )
@@ -610,7 +611,7 @@ fun HomeScreen(
                             )
                         }
                         Text(
-                            text = "47 total",
+                            text = dailyStats.totalBlockedAllTime.toString() + " total",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = FocusPrimary
@@ -624,170 +625,71 @@ fun HomeScreen(
                         modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)
                     )
 
-                    // 3 Apps List
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // Instagram
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(FocusSurfaceContainerHigh)
-                                .padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
+                    // Apps List, driven by the real interception log
+                    if (appInterventions.isEmpty()) {
+                        Text(
+                            text = "No interceptions yet. Blocked apps you open will appear here.",
+                            fontSize = 12.sp,
+                            color = FocusOnSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 6.dp)
+                        )
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            appInterventions.forEach { stat ->
+                                Row(
                                     modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(FocusSurfaceVariant),
-                                    contentAlignment = Alignment.Center
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(FocusSurfaceContainerHigh)
+                                        .padding(10.dp)
+                                        .testTag("intercept_row_" + stat.appName),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.PhotoCamera,
-                                        contentDescription = null,
-                                        tint = FocusTertiary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(FocusSurfaceVariant),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Shield,
+                                                contentDescription = null,
+                                                tint = FocusTertiary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column {
+                                            Text(
+                                                text = stat.appName,
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = FocusOnSurface
+                                            )
+                                            Text(
+                                                text = stat.subtext,
+                                                fontSize = 12.sp,
+                                                color = FocusOnSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            text = stat.attemptsCount.toString(),
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = FocusOnSurface
+                                        )
+                                        Text(
+                                            text = "attempts",
+                                            fontSize = 11.sp,
+                                            color = FocusOnSurfaceVariant
+                                        )
+                                    }
                                 }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = "Instagram",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = FocusOnSurface
-                                    )
-                                    Text(
-                                        text = "Reels loop blocked",
-                                        fontSize = 12.sp,
-                                        color = FocusOnSurfaceVariant
-                                    )
-                                }
-                            }
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = "27",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = FocusOnSurface
-                                )
-                                Text(
-                                    text = "attempts",
-                                    fontSize = 11.sp,
-                                    color = FocusOnSurfaceVariant
-                                )
-                            }
-                        }
-
-                        // YouTube
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(FocusSurfaceContainerHigh)
-                                .padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(FocusSurfaceVariant),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.SmartDisplay,
-                                        contentDescription = null,
-                                        tint = FocusError,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = "YouTube",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = FocusOnSurface
-                                    )
-                                    Text(
-                                        text = "Shorts tab restricted",
-                                        fontSize = 12.sp,
-                                        color = FocusOnSurfaceVariant
-                                    )
-                                }
-                            }
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = "14",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = FocusOnSurface
-                                )
-                                Text(
-                                    text = "attempts",
-                                    fontSize = 11.sp,
-                                    color = FocusOnSurfaceVariant
-                                )
-                            }
-                        }
-
-                        // TikTok
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(FocusSurfaceContainerHigh)
-                                .padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(FocusSurfaceVariant),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.MusicNote,
-                                        contentDescription = null,
-                                        tint = FocusSecondary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = "TikTok",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = FocusOnSurface
-                                    )
-                                    Text(
-                                        text = "Strict launch barrier",
-                                        fontSize = 12.sp,
-                                        color = FocusOnSurfaceVariant
-                                    )
-                                }
-                            }
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = "6",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = FocusOnSurface
-                                )
-                                Text(
-                                    text = "attempts",
-                                    fontSize = 11.sp,
-                                    color = FocusOnSurfaceVariant
-                                )
                             }
                         }
                     }
@@ -816,7 +718,7 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.height(2.dp))
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
-                                text = "47",
+                                text = dailyStats.recoveredMinutesToday.toString(),
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = FocusOnSurface
@@ -966,7 +868,7 @@ fun HomeScreen(
                             color = FocusOnSurface
                         )
                         Text(
-                            text = "You opened Instagram 31% less today. Keep it up!",
+                            text = mindfulShiftMessage(appInterventions),
                             fontSize = 12.sp,
                             color = FocusOnSurfaceVariant
                         )
@@ -976,4 +878,42 @@ fun HomeScreen(
             }
         }
     }
+}
+
+
+/** Today's date, matching the dashboard's uppercase styling. */
+private fun todayLabel(): String = java.text.SimpleDateFormat("EEEE, MMM d", java.util.Locale.getDefault())
+    .format(java.util.Date())
+    .uppercase(java.util.Locale.getDefault())
+
+/** Greeting chosen from the time of day rather than fixed at "morning". */
+private fun greetingForNow(): String {
+    val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+    return when {
+        hour < 12 -> "Good morning"
+        hour < 17 -> "Good afternoon"
+        else -> "Good evening"
+    }
+}
+
+private fun formatMinutes(minutes: Int): String =
+    com.example.data.analytics.FocusAnalytics.formatMinutes(minutes)
+
+/**
+ * Message for the "Mindful Shift" card.
+ *
+ * Built from the app with the most interceptions so it reports something real, and
+ * falls back to an invitation rather than a fabricated percentage when nothing has
+ * been intercepted yet.
+ */
+private fun mindfulShiftMessage(
+    interventions: List<com.example.data.model.AppInterventionStat>
+): String {
+    val top = interventions.maxByOrNull { it.attemptsCount }
+        ?: return "Once FocusGuard intercepts a blocked app, your progress shows up here."
+    val saved = com.example.data.analytics.FocusAnalytics.formatMinutes(
+        top.attemptsCount * com.example.data.analytics.FocusAnalytics.MINUTES_RECOVERED_PER_INTERCEPTION
+    )
+    return "FocusGuard stopped " + top.appName + " " + top.attemptsCount +
+        " times, saving about " + saved + "."
 }
