@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.Context
 import com.example.data.local.FocusGuardPreferences
 import com.example.data.repository.FocusGuardRepository
+import com.example.service.BlockingEngine
+import com.example.service.DefaultBlockingEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -33,6 +35,15 @@ class AppContainer(context: Context) {
     val repository: FocusGuardRepository = FocusGuardRepository(
         preferences = preferences,
         scope = applicationScope
+    )
+
+    /**
+     * Shared by the accessibility service. Reads the same repository the UI writes to,
+     * which is the whole reason this container exists.
+     */
+    val blockingEngine: BlockingEngine = DefaultBlockingEngine(
+        repository = repository,
+        ownPackageName = context.applicationContext.packageName
     )
 }
 

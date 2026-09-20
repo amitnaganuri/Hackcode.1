@@ -72,8 +72,12 @@ fun AddBlockBottomSheet(
     // Keyed on the rule so reopening the sheet for a different rule re-seeds the fields.
     var selectedMode by remember(existingRule) { mutableStateOf(existingRule?.blockMode) }
     var selectedApp by remember(existingRule) { mutableStateOf(existingRule?.appName ?: "Reddit") }
+    // There is no schedule picker in this sheet yet, so every new rule inherits this
+    // default. A weekday-only default means a rule the user just created silently does
+    // nothing at weekends, so a newly created block defaults to always-on; the Rule
+    // Summary below shows exactly what will be saved.
     var customSchedule by remember(existingRule) {
-        mutableStateOf(existingRule?.scheduleText ?: "9:00 AM – 5:00 PM • Weekdays")
+        mutableStateOf(existingRule?.scheduleText ?: "All Day • Daily")
     }
 
     val isEditing = existingRule != null

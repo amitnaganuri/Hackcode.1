@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.components.FocusGuardBrandIcon
 import com.example.ui.components.FocusGuardTopBar
 import com.example.ui.components.StrictSecurityDialog
+import com.example.ui.theme.FocusError
 import com.example.ui.theme.FocusOnPrimary
 import com.example.ui.theme.FocusOnSurface
 import com.example.ui.theme.FocusOnSurfaceVariant
@@ -62,6 +63,15 @@ import com.example.ui.theme.FocusSurfaceContainerHigh
 import com.example.ui.theme.FocusSurfaceContainerHighest
 import com.example.ui.theme.FocusSurfaceContainerLow
 import com.example.ui.theme.FocusTertiary
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.service.AccessibilityPermission
 import com.example.viewmodel.FocusGuardViewModel
 
 @Composable
@@ -73,6 +83,23 @@ fun SettingsScreen(
 ) {
     val masterShield by viewModel.shortsAndReelsMasterShield.collectAsState()
     val dailyStats by viewModel.dailyStats.collectAsState()
+
+    val context = LocalContext.current
+    // Re-read on every resume: the user grants this in system Settings and comes back,
+    // so a value captured once would be stale and would fake the status.
+    var isAccessibilityEnabled by remember {
+        mutableStateOf(AccessibilityPermission.isServiceEnabled(context))
+    }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                isAccessibilityEnabled = AccessibilityPermission.isServiceEnabled(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     var isStrictModeEnabled by remember { mutableStateOf(true) }
     var isDndEnabled by remember { mutableStateOf(true) }
@@ -367,11 +394,14 @@ fun SettingsScreen(
                 ) {
                     // Accessibility Service
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { AccessibilityPermission.openAccessibilitySettings(context) }
+                            .testTag("accessibility_permission_row"),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Accessibility Service",
                                 fontSize = 14.sp,
@@ -379,18 +409,29 @@ fun SettingsScreen(
                                 color = FocusOnSurface
                             )
                             Text(
-                                text = "Detects Shorts / Reels windows",
+                                text = if (isAccessibilityEnabled) {
+                                    "Detecting which app is in the foreground"
+                                } else {
+                                    "Required to block apps • tap to enable"
+                                },
                                 fontSize = 12.sp,
                                 color = FocusOnSurfaceVariant
                             )
                         }
+                        val statusColor = if (isAccessibilityEnabled) FocusPrimary else FocusError
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(FocusPrimary.copy(alpha = 0.15f))
+                                .background(statusColor.copy(alpha = 0.15f))
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
-                            Text("Ready", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = FocusPrimary)
+                            Text(
+                                text = if (isAccessibilityEnabled) "Enabled" else "Action needed",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = statusColor,
+                                modifier = Modifier.testTag("accessibility_status_badge")
+                            )
                         }
                     }
 

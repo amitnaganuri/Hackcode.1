@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Configuration for FocusAccessibilityService.
+
+    Phase 2 performs whole-app blocking, which only needs foreground window changes.
+    canRetrieveWindowContent is enabled because Phase 7 content detection (Reels /
+    Shorts) will need to inspect the node tree; it does not change Phase 2 behaviour.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault|flagIncludeNotImportantViews"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/accessibility_service_description"
+    android:notificationTimeout="100"
+    android:summary="@string/accessibility_service_summary" />

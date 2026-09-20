@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.data.model.BlockedAppRule
+import com.example.data.model.DistractionAttempt
 import com.example.data.model.InterventionConfig
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -42,6 +43,10 @@ class FocusGuardPreferences(context: Context) {
         moshi.adapter<List<BlockedAppRule>>(
             Types.newParameterizedType(List::class.java, BlockedAppRule::class.java)
         )
+    private val attemptListAdapter =
+        moshi.adapter<List<DistractionAttempt>>(
+            Types.newParameterizedType(List::class.java, DistractionAttempt::class.java)
+        )
     private val interventionAdapter = moshi.adapter(InterventionConfig::class.java)
     private val sessionAdapter = moshi.adapter(PersistedSession::class.java)
 
@@ -51,6 +56,7 @@ class FocusGuardPreferences(context: Context) {
         val SESSION = stringPreferencesKey("session_json")
         val GOAL = stringPreferencesKey("today_goal")
         val MASTER_SHIELD = booleanPreferencesKey("master_shield")
+        val ATTEMPTS = stringPreferencesKey("attempts_json")
         val SEEDED = booleanPreferencesKey("defaults_seeded")
     }
 
@@ -89,6 +95,12 @@ class FocusGuardPreferences(context: Context) {
     fun masterShieldFlow(default: Boolean): Flow<Boolean> =
         preferences.map { it[Keys.MASTER_SHIELD] ?: default }
 
+    fun attemptsFlow(): Flow<List<DistractionAttempt>> =
+        preferences.map { prefs ->
+            val json = prefs[Keys.ATTEMPTS] ?: return@map emptyList()
+            decode(json, emptyList()) { attemptListAdapter.fromJson(it) }
+        }
+
     fun seededFlow(): Flow<Boolean> = preferences.map { it[Keys.SEEDED] ?: false }
 
     suspend fun saveRules(rules: List<BlockedAppRule>) =
@@ -101,6 +113,9 @@ class FocusGuardPreferences(context: Context) {
         if (session == null) prefs.remove(Keys.SESSION)
         else prefs[Keys.SESSION] = sessionAdapter.toJson(session)
     }
+
+    suspend fun saveAttempts(attempts: List<DistractionAttempt>) =
+        write { it[Keys.ATTEMPTS] = attemptListAdapter.toJson(attempts) }
 
     suspend fun saveGoal(goal: String) = write { it[Keys.GOAL] = goal }
 

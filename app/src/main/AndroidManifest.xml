@@ -27,13 +27,34 @@
             </intent-filter>
         </activity>
 
+        <!--
+            Hosts the existing intervention UI over other apps. Excluded from recents and
+            given its own task affinity so it never merges with the main app task.
+        -->
+        <activity
+            android:name=".ui.intervention.InterventionActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=".intervention"
+            android:theme="@style/Theme.MyApplication" />
+
+        <!--
+            Must be exported so the system can bind it, and must point at the
+            accessibility-service meta-data or it will not appear in Android Settings.
+        -->
         <service
             android:name=".service.FocusAccessibilityService"
+            android:label="@string/app_name"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
+
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
         </service>
     </application>
 

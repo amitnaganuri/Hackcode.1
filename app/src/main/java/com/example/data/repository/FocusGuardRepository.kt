@@ -6,6 +6,7 @@ import com.example.data.model.AppInterventionStat
 import com.example.data.model.BlockMode
 import com.example.data.model.BlockedAppRule
 import com.example.data.model.DailyStats
+import com.example.data.model.DistractionAttempt
 import com.example.data.model.FocusSession
 import com.example.data.model.InterventionConfig
 import com.example.data.model.WeeklyBalanceDay
@@ -62,6 +63,10 @@ class FocusGuardRepository(
     private val _appInterventions = MutableStateFlow(defaultAppInterventions)
     val appInterventions: StateFlow<List<AppInterventionStat>> = _appInterventions.asStateFlow()
 
+    /** Interceptions recorded by the blocking engine, newest first. */
+    private val _distractionAttempts = MutableStateFlow<List<DistractionAttempt>>(emptyList())
+    val distractionAttempts: StateFlow<List<DistractionAttempt>> = _distractionAttempts.asStateFlow()
+
     private var timerJob: Job? = null
 
     init {
@@ -88,6 +93,9 @@ class FocusGuardRepository(
 
         _persistedSession.value = preferences.sessionFlow().first()
         recomputeSession()
+
+        _distractionAttempts.value = preferences.attemptsFlow().first()
+        refreshAttemptStats()
 
         // Keep in-memory state aligned with any other writer of the same DataStore file.
         // The accessibility service in later phases runs in this process but may hold its
@@ -234,6 +242,77 @@ class FocusGuardRepository(
         scope.launch { preferences.saveSession(session) }
     }
 
+    // ------------------------------------------------------- distraction log
+
+    /**
+     * Records an interception and bumps the matching rule's counter.
+     *
+     * Called from the accessibility service, so it must be safe off the main thread and
+     * must not block: state is updated in memory immediately and persisted on the
+     * application scope.
+     */
+    fun recordDistractionAttempt(
+        packageName: String,
+        appName: String,
+        ruleId: String,
+        ruleLabel: String,
+        blockMode: BlockMode,
+        sessionId: String?,
+        nowMillis: Long = clock()
+    ) {
+        val attempt = DistractionAttempt(
+            id = "attempt_" + nowMillis,
+            packageName = packageName,
+            appName = appName,
+            timestampEpochMillis = nowMillis,
+            ruleId = ruleId,
+            ruleLabel = ruleLabel,
+            sessionId = sessionId,
+            blockMode = blockMode
+        )
+
+        // Newest first, capped so the persisted JSON cannot grow without bound.
+        _distractionAttempts.update { (listOf(attempt) + it).take(MAX_STORED_ATTEMPTS) }
+        _rules.update { list ->
+            list.map { rule ->
+                if (rule.id == ruleId) {
+                    rule.copy(attemptsBlockedCount = rule.attemptsBlockedCount + 1)
+                } else rule
+            }
+        }
+        refreshAttemptStats()
+
+        val attempts = _distractionAttempts.value
+        val rules = _rules.value
+        scope.launch {
+            preferences.saveAttempts(attempts)
+            preferences.saveRules(rules)
+        }
+    }
+
+    /** Recomputes the stats the dashboard derives from the attempt log. */
+    private fun refreshAttemptStats() {
+        val startOfDay = startOfToday(clock())
+        val todayCount = _distractionAttempts.value.count { it.timestampEpochMillis >= startOfDay }
+        _dailyStats.update {
+            it.copy(
+                blockedAttemptsToday = todayCount,
+                totalBlockedAllTime = _distractionAttempts.value.size
+            )
+        }
+    }
+
+    private fun startOfToday(nowMillis: Long): Long {
+        val calendar = java.util.Calendar.getInstance().apply {
+            timeInMillis = nowMillis
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }
+        return calendar.timeInMillis
+    }
+
     // ------------------------------------------------------------ intervention
 
     fun updateInterventionConfig(updated: InterventionConfig) {
@@ -249,6 +328,8 @@ class FocusGuardRepository(
     }
 
     private companion object {
+        const val MAX_STORED_ATTEMPTS = 500
+
         val defaultRules = listOf(
             BlockedAppRule(
                 id = "rule_instagram",
